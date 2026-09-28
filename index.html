@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Pic Studio | Admin Management Console</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.autotable.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- SIDEBAR NAVIGATION (NO EMOJIS)             -->
+  <!-- ========================================== -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <a href="index.html">
+        <img src="logoo.png" alt="Self-Pic Photo Studio Logo" class="sidebar-logo">
+      </a>
+      <div class="sidebar-title">Admin Management System</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Core Operations</div>
+      <a class="sidebar-link active" data-module="dashboard">
+        <span class="sidebar-icon">[01]</span>
+        <span>Dashboard & Control</span>
+      </a>
+      <a class="sidebar-link" data-module="bookings">
+        <span class="sidebar-icon">[02]</span>
+        <span>Booking Lifecycle</span>
+      </a>
+      <a class="sidebar-link" data-module="catalog">
+        <span class="sidebar-icon">[03]</span>
+        <span>Catalog & Resources</span>
+      </a>
+      <a class="sidebar-link" data-module="inventory">
+        <span class="sidebar-icon">[04]</span>
+        <span>Storage & Printer Stocks</span>
+      </a>
+      <a class="sidebar-link" data-module="users">
+        <span class="sidebar-icon">[05]</span>
+        <span>Users & CRM</span>
+      </a>
+
+      <div class="nav-section-label">Real-Time & Intelligence</div>
+      <a class="sidebar-link" data-module="websockets">
+        <span class="sidebar-icon">[06]</span>
+        <span>Real-Time WebSockets</span>
+      </a>
+      <a class="sidebar-link" data-module="analytics">
+        <span class="sidebar-icon">[07]</span>
+        <span>Analytics & Reports</span>
+      </a>
+
+      <div class="nav-section-label">Governance & Security</div>
+      <a class="sidebar-link" data-module="audit">
+        <span class="sidebar-icon">[08]</span>
+        <span>Audit & Error Logs</span>
+      </a>
+      <a class="sidebar-link" data-module="security">
+        <span class="sidebar-icon">[09]</span>
+        <span>Security & Throttling</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div>
+        <div style="font-weight: 700; color: #fff;" id="sidebarAdminUser">Studio Admin</div>
+        <div style="color: #777; font-size: 0.72rem;" id="sidebarAdminRole">Super Administrator</div>
+      </div>
+      <div>
+        <a href="../index.html" target="_blank" title="Open Public Website" style="margin-right: 8px;">Public Site &rarr;</a>
+        <a href="#" onclick="adminApp.logout(); return false;" style="color: #f87171;" title="Log out of session">Log Out</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- MAIN WORKSPACE                             -->
+  <!-- ========================================== -->
+  <div class="admin-main">
+    
+    <!-- TOPBAR -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <div class="branch-select-wrap">
+          <label for="adminBranchFilter">Active Branch:</label>
+          <select id="adminBranchFilter">
+            <option value="all" selected>All Bulacan Branches</option>
+            <option value="Sta. Maria Bulacan">Sta. Maria Bulacan</option>
+            <option value="Muzon, San Jose Del Monte">Muzon, San Jose Del Monte</option>
+            <option value="Pandi Bulacan">Pandi Bulacan</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Live WebSocket Indicator -->
+        <div class="ws-status-pill" id="topbarWsPill" title="Live WebSocket stream active">
+          <span class="status-dot"></span>
+          <span>WS: LIVE (18ms)</span>
+        </div>
+
+        <div class="user-badge">
+          <div class="user-avatar">AD</div>
+          <span style="font-size: 0.82rem; font-weight: 700;" id="topbarAdminName">Admin Desk</span>
+        </div>
+
+        <button class="btn-sm" onclick="adminApp.logout()">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- CONTENT MODULES -->
+    <main class="admin-content">
+
+      <!-- ========================================== -->
+      <!-- MODULE 1: ADMIN CONTROL PANEL & DASHBOARD  -->
+      <!-- ========================================== -->
+      <section class="module-view active" id="mod-dashboard">
+        <div class="view-header">
+          <div>
+            <h2>Admin Control Panel & Management Dashboard</h2>
+            <p>High-level studio operations overview, branch utilization, and live revenue tracking.</p>
+          </div>
+          <div>
+            <button class="btn-sm btn-black" onclick="adminApp.quickWalkinModal()">+ Walk-In Reservation</button>
+            &nbsp;
+            <button class="btn-sm" onclick="adminApp.broadcastAnnouncement()">Broadcast Notice</button>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Total Studio Revenue</span>
+            <div class="kpi-value" id="kpiRevenue">₱18,440 PHP</div>
+            <span class="kpi-subtitle">All 3 branches combined (PHP)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Today's Reservations</span>
+            <div class="kpi-value" id="kpiBookingsToday">12</div>
+            <span class="kpi-subtitle">8 Completed &bull; 3 Upcoming &bull; 1 In-Shoot</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">On-Site Balances Due</span>
+            <div class="kpi-value" id="kpiPendingBalance">₱3,240 PHP</div>
+            <span class="kpi-subtitle">To be collected prior to shoot room entry</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Studio Capacity & Utilization</span>
+            <div class="kpi-value" id="kpiUtilization">84%</div>
+            <span class="kpi-subtitle">High weekend occupancy</span>
+          </div>
+        </div>
+
+        <!-- Live Branch Status Cards -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Bulacan Studio Branches Live Status</span>
+            <span class="badge badge-confirmed">Operating 10:00 AM &ndash; 7:00 PM</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div style="border: 1px solid var(--admin-border); border-radius: 6px; padding: 16px; background-color: #fafafa;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong>Sta. Maria Bulacan</strong>
+                <span class="badge badge-confirmed">Open &bull; Active</span>
+              </div>
+              <div style="font-size: 0.85rem; color: #555;">Current Shoot: SOLO 249 (Maria Santos)</div>
+              <div style="font-size: 0.8rem; margin-top: 6px;">Next: DUO 399 @ 02:20 PM</div>
+            </div>
+
+            <div style="border: 1px solid var(--admin-border); border-radius: 6px; padding: 16px; background-color: #fafafa;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong>Muzon, San Jose Del Monte</strong>
+                <span class="badge badge-confirmed">Open &bull; Active</span>
+              </div>
+              <div style="font-size: 0.85rem; color: #555;">Current Shoot: GRUPO 599 (Barkada Shoot)</div>
+              <div style="font-size: 0.8rem; margin-top: 6px;">Next: RENT DUO 799 @ 03:00 PM</div>
+            </div>
+
+            <div style="border: 1px solid var(--admin-border); border-radius: 6px; padding: 16px; background-color: #fafafa;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong>Pandi Bulacan</strong>
+                <span class="badge badge-confirmed">Open &bull; Active</span>
+              </div>
+              <div style="font-size: 0.85rem; color: #555;">Current Shoot: TRIO 349 (Graduation Shoot)</div>
+              <div style="font-size: 0.8rem; margin-top: 6px;">Next: SOLO 199 @ 02:40 PM</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Reservations Pipeline -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Active Booking Pipeline</span>
+            <button class="btn-sm" onclick="adminApp.navigateModule('bookings')">View All in Booking Lifecycle &raquo;</button>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Ref No</th>
+                  <th>Client</th>
+                  <th>Branch</th>
+                  <th>Package</th>
+                  <th>Schedule</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardPipelineTbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 2: BOOKING STATUS & LIFECYCLE       -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-bookings">
+        <div class="view-header">
+          <div>
+            <h2>Booking Status & Lifecycle Management Module</h2>
+            <p>Control booking transitions: Pending &rarr; Confirmed &rarr; Checked-In &rarr; In-Shoot &rarr; Completed.</p>
+          </div>
+          <div>
+            <button class="btn-sm btn-black" onclick="adminApp.quickWalkinModal()">+ New Reservation</button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <input type="text" id="bookingSearchInput" class="filter-input" placeholder="Search reference, client name, or phone...">
+          <select id="bookingStatusFilter" class="filter-select">
+            <option value="all">All Statuses</option>
+            <option value="Confirmed (50% Paid)">Confirmed (50% Paid)</option>
+            <option value="Paid Full (100%)">Paid Full (100%)</option>
+            <option value="Checked-In">Checked-In (On-site)</option>
+            <option value="In-Shoot">In-Shoot (Room Occupied)</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <button class="btn-sm" onclick="adminApp.resetBookingFilters()">Reset Filters</button>
+        </div>
+
+        <!-- Bookings Master Table -->
+        <div class="admin-card">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Customer</th>
+                  <th>Branch</th>
+                  <th>Package</th>
+                  <th>Shoot Schedule</th>
+                  <th>Add-ons</th>
+                  <th>Total / Paid</th>
+                  <th>Lifecycle Status</th>
+                  <th>Manage</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsMasterTbody">
+                <!-- Dynamically populated from adminApp.bookings -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 3: CATALOG & RESOURCE DISCOVERY     -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-catalog">
+        <div class="view-header">
+          <div>
+            <h2>Catalog & Resource Discovery Module</h2>
+            <p>Manage packages, live rates, physical studio equipment, and backdrop inventory.</p>
+          </div>
+        </div>
+
+        <!-- 10 Studio Packages Manager -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Studio Package Catalog (10 Packages)</span>
+            <span class="text-muted" style="font-size: 0.8rem;">Click rate to edit base pricing</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Package Name</th>
+                  <th>Category</th>
+                  <th>Capacity</th>
+                  <th>Shoot Duration</th>
+                  <th>Hard Copies</th>
+                  <th>Soft Copies</th>
+                  <th>Base Rate (PHP)</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="catalogTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Backdrops Inventory -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Backdrop Colors Discovery</span>
+            <span class="badge badge-confirmed">7 Colors Mounted</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Backdrop Color</th>
+                  <th>Status</th>
+                  <th>Condition</th>
+                  <th>Mounted Branch</th>
+                </tr>
+              </thead>
+              <tbody id="backdropsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 4: STORAGE & PRINTER INVENTORY      -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-inventory">
+        <div class="view-header">
+          <div>
+            <h2>Storage & Printer Stock Inventory Module</h2>
+            <p>Monitor physical supplies: Photo paper stock, dye-sublimation printer ribbons, and ink levels.</p>
+          </div>
+          <div>
+            <button class="btn-sm btn-black" onclick="adminApp.openResourceRestockModal()">+ Record Restock Shipment</button>
+          </div>
+        </div>
+
+        <!-- Printer Paper Stocks Table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Printer Photo Paper Stock</span>
+            <span class="badge badge-confirmed">Daily Stock Audit</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Paper Specification</th>
+                  <th>Used For Packages</th>
+                  <th>Units In Stock</th>
+                  <th>Packs / Rolls</th>
+                  <th>Reorder Alert Level</th>
+                  <th>Stock Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="paperInventoryTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Printer Ink & Ribbon Stocks Table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Printer Ink & Ribbon Consumables</span>
+            <span class="badge badge-inshoot">DNP Dye-Sublimation Units</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Consumable Item</th>
+                  <th>Color / Type</th>
+                  <th>Yield per Unit</th>
+                  <th>Stock Remaining</th>
+                  <th>Operational Level</th>
+                  <th>Health Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="inkInventoryTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 5: USER DASHBOARD & PROFILE CRM     -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-users">
+        <div class="view-header">
+          <div>
+            <h2>User Dashboard & Profile Management Module</h2>
+            <p>Customer CRM database, spending records, and staff administrative accounts.</p>
+          </div>
+          <div>
+            <button class="btn-sm btn-black" onclick="adminApp.addStaffModal()">+ Add Staff Account</button>
+          </div>
+        </div>
+
+        <!-- Customer Profiles CRM (WITHOUT CLIENT TAG & TOTAL BOOKING) -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Client Directory & Spending Profiles</span>
+            <input type="text" id="userSearchInput" placeholder="Filter clients by name or phone..." class="filter-input" style="max-width: 250px; padding: 4px 10px;">
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Email Address</th>
+                  <th>Phone Number</th>
+                  <th>Total Spend (PHP)</th>
+                  <th>Preferred Branch</th>
+                </tr>
+              </thead>
+              <tbody id="clientsTableBody">
+                <!-- Dynamically populated (WITHOUT client tag & total bookings) -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Admin & Staff Accounts -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Staff Accounts & Branch Assignments</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Staff Member</th>
+                  <th>Role</th>
+                  <th>Assigned Branch</th>
+                  <th>2FA Status</th>
+                  <th>Permissions</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="staffTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 6: REAL-TIME WEBSOCKETS MODULE      -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-websockets">
+        <div class="view-header">
+          <div>
+            <h2>Real-Time WebSockets Module</h2>
+            <p>Live event broadcasting channel for instant booking updates, room timers, and branch synchronization.</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-sm btn-black" id="wsToggleBtn" onclick="adminApp.toggleWebSocket()">Pause Stream</button>
+            <button class="btn-sm" onclick="adminApp.triggerSimulatedEvent()">Emit Test Event</button>
+            <button class="btn-sm" onclick="adminApp.clearWsTerminal()">Clear Terminal</button>
+          </div>
+        </div>
+
+        <!-- WebSocket Diagnostics Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Socket Endpoint</span>
+            <div class="kpi-value" style="font-size: 1.1rem;">wss://api.selfpicstudio.ph/v1/stream</div>
+            <span class="kpi-subtitle">Cluster: ap-southeast-1</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Heartbeat Ping Latency</span>
+            <div class="kpi-value" id="wsLatency">18ms</div>
+            <span class="kpi-subtitle">Status: Connected & Streaming</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Events Processed</span>
+            <div class="kpi-value" id="wsEventCount">482</div>
+            <span class="kpi-subtitle">Broadcasts today</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Connected Studio Nodes</span>
+            <div class="kpi-value">3 / 3</div>
+            <span class="kpi-subtitle">Sta. Maria &bull; Muzon &bull; Pandi</span>
+          </div>
+        </div>
+
+        <!-- Terminal Output -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Live WebSocket Feed & Event Packet Stream</span>
+            <span class="text-muted" style="font-family: var(--font-mono); font-size: 0.8rem;">AUTOSCROLL: ON</span>
+          </div>
+          <div class="ws-terminal" id="wsTerminal">
+            <!-- Event stream logs populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 7: ANALYTICS & REPORTING MODULE     -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-analytics">
+        <div class="view-header">
+          <div>
+            <h2>Analytics & Reporting Module</h2>
+            <p>Visual trends, branch comparison, date range filtering, and official PDF report generation.</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-sm btn-black" onclick="adminApp.downloadReportPDF()" style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              Download PDF Report
+            </button>
+            <button class="btn-sm" onclick="adminApp.exportSalesReport()">Export CSV</button>
+          </div>
+        </div>
+
+        <!-- REPORT DATE & BRANCH FILTER CONTROL PANEL -->
+        <div class="admin-card" style="margin-bottom: 24px;">
+          <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <span class="admin-card-title" style="margin: 0; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+                Report Filter by Date Range & Branch
+              </span>
+              <span style="font-size: 0.78rem; color: var(--admin-gray-mid); display: block; margin-top: 2px;">
+                Select starting date, end date, and branch to view and download PDF financial reports.
+              </span>
+            </div>
+            <span class="badge badge-neutral" id="repFilterStatusBadge">Active Filter</span>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+            <div style="flex: 1; min-width: 170px;">
+              <label for="reportStartDate" style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--admin-text);">
+                Starting Date
+              </label>
+              <input type="date" id="reportStartDate" class="filter-input" value="2026-09-01" style="width: 100%;">
+            </div>
+
+            <div style="flex: 1; min-width: 170px;">
+              <label for="reportEndDate" style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--admin-text);">
+                End Date
+              </label>
+              <input type="date" id="reportEndDate" class="filter-input" value="2026-09-30" style="width: 100%;">
+            </div>
+
+            <div style="flex: 1.2; min-width: 220px;">
+              <label for="reportBranchFilter" style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--admin-text);">
+                Branch Filter
+              </label>
+              <select id="reportBranchFilter" class="filter-select" style="width: 100%;">
+                <option value="all" selected>All Bulacan Branches</option>
+                <option value="Sta. Maria Bulacan">Sta. Maria Bulacan</option>
+                <option value="Muzon, San Jose Del Monte">Muzon, San Jose Del Monte</option>
+                <option value="Pandi Bulacan">Pandi Bulacan</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn-sm btn-black" onclick="adminApp.applyAnalyticsFilter()" style="padding: 10px 18px; font-weight: 700; cursor: pointer;">
+                Apply Filter
+              </button>
+              <button class="btn-sm" onclick="adminApp.resetAnalyticsFilter()" style="padding: 10px 14px; cursor: pointer;">
+                Reset
+              </button>
+              <button class="btn-sm btn-black" onclick="adminApp.downloadReportPDF()" style="padding: 10px 18px; font-weight: 700; background: #000000; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                Download PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTERED REPORT KPI OVERVIEW METRICS -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div class="metric-card" style="padding: 16px; border: 1px solid var(--admin-border); background: #ffffff; border-radius: 6px;">
+            <span class="metric-label" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--admin-gray-mid);">Filtered Bookings</span>
+            <span class="metric-value" id="repFilteredCount" style="font-size: 1.6rem; font-weight: 800; display: block; margin: 4px 0;">0</span>
+            <span class="metric-diff" id="repDateRangeBadge" style="font-size: 0.72rem; color: var(--admin-gray-mid);">2026-09-01 to 2026-09-30</span>
+          </div>
+
+          <div class="metric-card" style="padding: 16px; border: 1px solid var(--admin-border); background: #ffffff; border-radius: 6px;">
+            <span class="metric-label" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--admin-gray-mid);">Total Period Revenue</span>
+            <span class="metric-value" id="repFilteredTotal" style="font-size: 1.6rem; font-weight: 800; display: block; margin: 4px 0;">₱0 PHP</span>
+            <span class="metric-diff" id="repBranchBadge" style="font-size: 0.72rem; color: var(--admin-gray-mid);">All Branches</span>
+          </div>
+
+          <div class="metric-card" style="padding: 16px; border: 1px solid var(--admin-border); background: #ffffff; border-radius: 6px;">
+            <span class="metric-label" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--admin-gray-mid);">Settled / Collected</span>
+            <span class="metric-value" id="repFilteredPaid" style="font-size: 1.6rem; font-weight: 800; color: #10b981; display: block; margin: 4px 0;">₱0 PHP</span>
+            <span class="metric-diff" style="font-size: 0.72rem; color: #10b981; font-weight: 600;">Payments Received</span>
+          </div>
+
+          <div class="metric-card" style="padding: 16px; border: 1px solid var(--admin-border); background: #ffffff; border-radius: 6px;">
+            <span class="metric-label" style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--admin-gray-mid);">Outstanding Receivables</span>
+            <span class="metric-value" id="repFilteredBalance" style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; display: block; margin: 4px 0;">₱0 PHP</span>
+            <span class="metric-diff" style="font-size: 0.72rem; color: var(--admin-gray-mid);">Uncollected Balances</span>
+          </div>
+        </div>
+
+        <!-- FILTERED DATA RECORDS PREVIEW TABLE -->
+        <div class="admin-card" style="margin-bottom: 28px;">
+          <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <span class="admin-card-title" style="margin: 0; font-size: 0.95rem; font-weight: 800;">Filtered Booking & Financial Records</span>
+              <span id="repTableSubtitle" style="font-size: 0.78rem; color: var(--admin-gray-mid); display: block; margin-top: 2px;">
+                Showing bookings matching active date period and branch selection
+              </span>
+            </div>
+            <span class="badge badge-neutral" id="repTableCountBadge">0 records</span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Shoot Date</th>
+                  <th>Ref Code</th>
+                  <th>Customer</th>
+                  <th>Branch</th>
+                  <th>Package</th>
+                  <th>Total Rate</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="reportTableBody">
+                <!-- Dynamically rendered -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Analytics Visual Chart Rows -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 28px;">
+          
+          <!-- Branch Revenue Comparison -->
+          <div class="admin-card">
+            <span class="admin-card-title">Revenue Share by Branch</span>
+            <div class="chart-container">
+              <div class="chart-bar-row">
+                <span class="chart-label">Sta. Maria</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 78%;"></div></div>
+                <span class="chart-val">₱7,480</span>
+              </div>
+              <div class="chart-bar-row">
+                <span class="chart-label">Muzon SJDM</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 65%;"></div></div>
+                <span class="chart-val">₱6,240</span>
+              </div>
+              <div class="chart-bar-row">
+                <span class="chart-label">Pandi Bulacan</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 50%;"></div></div>
+                <span class="chart-val">₱4,720</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Peak Booking Hours Heatmap -->
+          <div class="admin-card">
+            <span class="admin-card-title">Popular Shoot Hours (10 AM &ndash; 7 PM)</span>
+            <div class="chart-container">
+              <div class="chart-bar-row">
+                <span class="chart-label">10 AM &ndash; 12 PM</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 55%;"></div></div>
+                <span class="chart-val">22 Shoots</span>
+              </div>
+              <div class="chart-bar-row">
+                <span class="chart-label">01 PM &ndash; 04 PM</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 95%;"></div></div>
+                <span class="chart-val">46 Shoots</span>
+              </div>
+              <div class="chart-bar-row">
+                <span class="chart-label">04 PM &ndash; 07 PM</span>
+                <div class="chart-bar-track"><div class="chart-bar-fill" style="width: 82%;"></div></div>
+                <span class="chart-val">38 Shoots</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Add-ons Performance Table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Add-on Customization Popularity</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Add-on Type</th>
+                  <th>Total Sold</th>
+                  <th>Unit Rate</th>
+                  <th>Revenue Generated</th>
+                  <th>Share of Extra Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Extra Studio Time (+10 mins)</strong></td>
+                  <td>34 units</td>
+                  <td>₱100 PHP</td>
+                  <td><strong>₱3,400 PHP</strong></td>
+                  <td>48%</td>
+                </tr>
+                <tr>
+                  <td><strong>Extra Backdrop Colors</strong></td>
+                  <td>26 colors</td>
+                  <td>₱100 PHP</td>
+                  <td><strong>₱2,600 PHP</strong></td>
+                  <td>37%</td>
+                </tr>
+                <tr>
+                  <td><strong>Extra Guests (Grupo)</strong></td>
+                  <td>21 pax</td>
+                  <td>₱50 PHP</td>
+                  <td><strong>₱1,050 PHP</strong></td>
+                  <td>15%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 8: AUDIT LOGGING & ERROR TRACKING   -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-audit">
+        <div class="view-header">
+          <div>
+            <h2>Audit Logging & Error Tracking Module</h2>
+            <p>Comprehensive system audit trail of administrative changes, payment webhooks, and error exceptions.</p>
+          </div>
+          <div>
+            <button class="btn-sm" onclick="adminApp.exportAuditLogs()">Export Logs (JSON)</button>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="auditSearchInput" class="filter-input" placeholder="Filter audit trail by action or user...">
+          <select id="auditSeverityFilter" class="filter-select">
+            <option value="all">All Severities</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+            <option value="CRITICAL">CRITICAL</option>
+          </select>
+        </div>
+
+        <div class="admin-card">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Severity</th>
+                  <th>Actor / IP</th>
+                  <th>Module</th>
+                  <th>Action Description</th>
+                  <th>Trace ID</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- MODULE 9: SECURITY & RATE LIMITING         -->
+      <!-- ========================================== -->
+      <section class="module-view" id="mod-security">
+        <div class="view-header">
+          <div>
+            <h2>Security & Rate Limiting Module</h2>
+            <p>IP throttling, brute-force mitigation, GCash webhook HMAC signature checks, and session controls.</p>
+          </div>
+          <div>
+            <button class="btn-sm btn-black" onclick="adminApp.saveSecurityConfig()">Save Security Policies</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 28px;">
+          
+          <!-- Throttling & Rate Limits -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <span class="admin-card-title">Rate Limiting Thresholds</span>
+              <span class="badge badge-confirmed">Active Defense</span>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 4px;">Max Booking Submissions per IP / Minute</label>
+              <input type="number" value="5" class="filter-input" style="width: 100%;">
+              <small class="text-muted">Prevents booking reservation bot spam.</small>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 4px;">API Rate Limit (Requests / Second)</label>
+              <input type="number" value="30" class="filter-input" style="width: 100%;">
+              <small class="text-muted">Enforced on package catalogs and time slot queries.</small>
+            </div>
+
+            <div>
+              <label style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 4px;">GCash Webhook Signature Verification</label>
+              <select class="filter-select" style="width: 100%;">
+                <option value="strict" selected>STRICT: Enforce HMAC-SHA256 Secret Verification</option>
+                <option value="test">PERMISSIVE: Sandbox Verification (Development)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- IP Blacklist Manager -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <span class="admin-card-title">IP Blacklist & Access Control</span>
+              <button class="btn-sm" onclick="adminApp.addBlacklistIpModal()">+ Block IP</button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>IP Address</th>
+                    <th>Reason</th>
+                    <th>Date Added</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="blacklistTableBody">
+                  <tr>
+                    <td><code>192.168.10.44</code></td>
+                    <td>High rate limit exceed</td>
+                    <td>2026-09-14</td>
+                    <td><button class="btn-sm" onclick="this.closest('tr').remove()">Unblock</button></td>
+                  </tr>
+                  <tr>
+                    <td><code>112.198.71.12</code></td>
+                    <td>Malicious payload attempt</td>
+                    <td>2026-09-15</td>
+                    <td><button class="btn-sm" onclick="this.closest('tr').remove()">Unblock</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Active Admin Sessions -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">Active Administrator Sessions</span>
+          </div>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Device / Browser</th>
+                  <th>IP Address</th>
+                  <th>Login Location</th>
+                  <th>Session Started</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>MacOS Safari (Current Session)</strong></td>
+                  <td>127.0.0.1 (Localhost)</td>
+                  <td>Bulacan, Philippines</td>
+                  <td>Just now</td>
+                  <td><span class="badge badge-confirmed">Current Device</span></td>
+                </tr>
+                <tr>
+                  <td>Chrome on Android Mobile</td>
+                  <td>124.106.182.90</td>
+                  <td>San Jose Del Monte, Bulacan</td>
+                  <td>2 hours ago</td>
+                  <td><button class="btn-sm" onclick="alert('Session terminated.'); this.closest('tr').remove();">Revoke</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALS: BOOKING DETAIL & LIFECYCLE ACTION  -->
+  <!-- ========================================== -->
+  <div class="admin-modal-overlay" id="bookingDetailModal">
+    <div class="admin-modal">
+      <div class="admin-modal-header">
+        <h3 id="modalBookingTitle">Reservation SP-894210 Details</h3>
+        <button class="btn-sm" onclick="adminApp.closeModal('bookingDetailModal')">&times;</button>
+      </div>
+      <div class="admin-modal-body" id="modalBookingBody">
+        <!-- Injected dynamically -->
+      </div>
+      <div class="admin-modal-footer">
+        <button class="btn-sm" onclick="adminApp.closeModal('bookingDetailModal')">Close</button>
+        <button class="btn-sm btn-black" id="modalActionBtn" onclick="adminApp.handleModalLifecycleAction()">Mark In-Shoot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT PACKAGE RATE -->
+  <div class="admin-modal-overlay" id="editPackageModal">
+    <div class="admin-modal" style="max-width: 450px;">
+      <div class="admin-modal-header">
+        <h3 id="editPackageTitle">Edit Package Rate</h3>
+        <button class="btn-sm" onclick="adminApp.closeModal('editPackageModal')">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-weight: 700; margin-bottom: 6px;">New Base Price (PHP):</label>
+          <input type="number" id="editPackagePriceInput" class="filter-input" style="width: 100%;">
+        </div>
+      </div>
+      <div class="admin-modal-footer">
+        <button class="btn-sm" onclick="adminApp.closeModal('editPackageModal')">Cancel</button>
+        <button class="btn-sm btn-black" onclick="adminApp.savePackagePrice()">Save Price</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>
